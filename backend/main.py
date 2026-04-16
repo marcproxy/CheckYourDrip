@@ -137,8 +137,9 @@ def detect(req: DetectRequest):
         if frame is None:
             raise HTTPException(status_code=400, detail="Image invalide")
 
-        results = model(frame, conf=0.3, verbose=False)
+        results = model(frame, conf=0.15, verbose=False)
         boxes = results[0].boxes
+        print(f"[detect] {len(boxes) if boxes else 0} box(es) trouvée(s)")
 
         detections = []
         if boxes is not None:
