@@ -11,25 +11,62 @@ interface Detection {
   bbox: [number, number, number, number];
 }
 
-const COLORS: Record<string, string> = {
-  default: "#6366f1",
-};
-
-function getColor(cls: string) {
-  return COLORS[cls] ?? COLORS.default;
+function getColor(_cls: string) {
+  return "#6366f1";
 }
+
+// Canvas de capture caché (hors écran) — uniquement pour encoder le JPEG
+const offscreen = typeof document !== "undefined" ? document.createElement("canvas") : null;
 
 export default function CameraDetector() {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  // Canvas transparent superposé pour les bounding boxes uniquement
+  const overlayRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const detectionsRef = useRef<Detection[]>([]);
+  const animRef = useRef<number | null>(null);
 
   const [detections, setDetections] = useState<Detection[]>([]);
   const [best, setBest] = useState<Detection | null>(null);
   const [status, setStatus] = useState<"idle" | "running" | "saving" | "saved" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [cameraOn, setCameraOn] = useState(false);
+
+  // Boucle rAF : redessine les boxes à 60fps par-dessus la vidéo native
+  const startOverlayLoop = useCallback(() => {
+    const loop = () => {
+      const canvas = overlayRef.current;
+      const video = videoRef.current;
+      if (!canvas || !video) { animRef.current = requestAnimationFrame(loop); return; }
+
+      canvas.width = video.videoWidth || canvas.offsetWidth;
+      canvas.height = video.videoHeight || canvas.offsetHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { animRef.current = requestAnimationFrame(loop); return; }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (const det of detectionsRef.current) {
+        const [x1, y1, x2, y2] = det.bbox;
+        const color = getColor(det.class);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+
+        const label = `${det.class} ${(det.confidence * 100).toFixed(0)}%`;
+        ctx.font = "bold 14px sans-serif";
+        const tw = ctx.measureText(label).width;
+        ctx.fillStyle = color;
+        ctx.fillRect(x1, y1 - 20, tw + 8, 20);
+        ctx.fillStyle = "#fff";
+        ctx.fillText(label, x1 + 4, y1 - 5);
+      }
+
+      animRef.current = requestAnimationFrame(loop);
+    };
+    animRef.current = requestAnimationFrame(loop);
+  }, []);
 
   const startCamera = useCallback(async () => {
     try {
@@ -43,66 +80,40 @@ export default function CameraDetector() {
       }
       setCameraOn(true);
       setStatus("running");
+      startOverlayLoop();
     } catch {
       setErrorMsg("Impossible d'accéder à la caméra. Vérifiez les permissions.");
       setStatus("error");
     }
-  }, []);
+  }, [startOverlayLoop]);
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     if (intervalRef.current) clearInterval(intervalRef.current);
+    if (animRef.current) cancelAnimationFrame(animRef.current);
     intervalRef.current = null;
+    animRef.current = null;
+    detectionsRef.current = [];
     setCameraOn(false);
     setStatus("idle");
     setDetections([]);
     setBest(null);
   }, []);
 
-  // Capture frame → base64
+  // Capture un JPEG via canvas hors-écran
   const captureFrame = useCallback((): string | null => {
     const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas) return null;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext("2d");
+    if (!video || !offscreen) return null;
+    offscreen.width = video.videoWidth;
+    offscreen.height = video.videoHeight;
+    const ctx = offscreen.getContext("2d");
     if (!ctx) return null;
     ctx.drawImage(video, 0, 0);
-    return canvas.toDataURL("image/jpeg", 0.8);
+    return offscreen.toDataURL("image/jpeg", 0.7);
   }, []);
 
-  // Dessine les bounding boxes sur le canvas
-  const drawDetections = useCallback((dets: Detection[]) => {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas) return;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    ctx.drawImage(video, 0, 0);
-
-    for (const det of dets) {
-      const [x1, y1, x2, y2] = det.bbox;
-      const color = getColor(det.class);
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
-      ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
-
-      const label = `${det.class} ${(det.confidence * 100).toFixed(0)}%`;
-      ctx.font = "bold 14px sans-serif";
-      const tw = ctx.measureText(label).width;
-      ctx.fillStyle = color;
-      ctx.fillRect(x1, y1 - 20, tw + 8, 20);
-      ctx.fillStyle = "#fff";
-      ctx.fillText(label, x1 + 4, y1 - 5);
-    }
-  }, []);
-
-  // Boucle de détection (~3 fps pour ne pas saturer l'API)
+  // Boucle de détection — envoie frames à l'API sans bloquer le rendu
   useEffect(() => {
     if (!cameraOn) return;
 
@@ -118,41 +129,33 @@ export default function CameraDetector() {
         if (!res.ok) return;
         const data = await res.json();
         const dets: Detection[] = data.detections ?? [];
+        detectionsRef.current = dets;
         setDetections(dets);
-
         if (dets.length > 0) {
-          const b = dets.reduce((a, c) => (c.confidence > a.confidence ? c : a));
-          setBest(b);
+          setBest(dets.reduce((a, c) => (c.confidence > a.confidence ? c : a)));
         } else {
           setBest(null);
         }
-
-        drawDetections(dets);
       } catch {
-        // silently ignore network errors during detection loop
+        // silently ignore
       }
-    }, 350); // ~3 fps
+    }, 350);
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [cameraOn, captureFrame, drawDetections]);
+  }, [cameraOn, captureFrame]);
 
   const handleSave = async () => {
     if (!best || status === "saving") return;
     const frame = captureFrame();
     if (!frame) return;
-
     setStatus("saving");
     try {
       await fetch(`${API_URL}/save`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          image: frame,
-          object_class: best.class,
-          confidence: best.confidence,
-        }),
+        body: JSON.stringify({ image: frame, object_class: best.class, confidence: best.confidence }),
       });
       setStatus("saved");
       setTimeout(() => setStatus("running"), 2000);
@@ -165,7 +168,7 @@ export default function CameraDetector() {
 
   return (
     <div className="flex flex-col items-center gap-6 w-full max-w-2xl mx-auto">
-      {/* Viewer */}
+      {/* Viewer : vidéo fluide + canvas transparent pour les boxes */}
       <div className="relative w-full aspect-video bg-gray-900 rounded-2xl overflow-hidden">
         <video
           ref={videoRef}
@@ -174,8 +177,8 @@ export default function CameraDetector() {
           playsInline
         />
         <canvas
-          ref={canvasRef}
-          className="absolute inset-0 w-full h-full object-cover"
+          ref={overlayRef}
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
         />
         {!cameraOn && (
           <div className="absolute inset-0 flex items-center justify-center">
@@ -229,10 +232,7 @@ export default function CameraDetector() {
           <p className="text-sm text-gray-400 mb-2 font-medium">Détections en cours :</p>
           <div className="flex flex-wrap gap-2">
             {detections.map((d, i) => (
-              <span
-                key={i}
-                className="bg-indigo-900 text-indigo-200 text-sm px-3 py-1 rounded-full"
-              >
+              <span key={i} className="bg-indigo-900 text-indigo-200 text-sm px-3 py-1 rounded-full">
                 {d.class} {(d.confidence * 100).toFixed(0)}%
               </span>
             ))}
@@ -240,10 +240,7 @@ export default function CameraDetector() {
         </div>
       )}
 
-      {/* Error */}
-      {status === "error" && (
-        <p className="text-red-400 text-sm">{errorMsg}</p>
-      )}
+      {status === "error" && <p className="text-red-400 text-sm">{errorMsg}</p>}
     </div>
   );
 }
