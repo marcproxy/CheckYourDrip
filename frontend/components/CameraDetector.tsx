@@ -170,34 +170,31 @@ export default function CameraDetector() {
     <div className="flex flex-col gap-4 w-full">
 
       {/* ── Viewer ── */}
-      <div className="relative w-full aspect-video bg-[#0d1117] border border-white/[0.07] rounded-2xl overflow-hidden">
+      <div className="relative w-full aspect-video bg-gray-100 border border-gray-200 rounded-2xl overflow-hidden">
         <video ref={videoRef} className="absolute inset-0 w-full h-full object-cover" muted playsInline />
         <canvas ref={overlayRef} className="absolute inset-0 w-full h-full object-cover pointer-events-none" />
 
-        {/* Inactive state */}
         {!cameraOn && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center">
-              <svg className="w-6 h-6 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-white border border-gray-200 shadow-sm flex items-center justify-center">
+              <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.361a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
               </svg>
             </div>
-            <p className="text-white/20 text-sm">Caméra inactive</p>
+            <p className="text-gray-400 text-sm">Caméra inactive</p>
           </div>
         )}
 
-        {/* Live badge */}
         {cameraOn && (
-          <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/50 backdrop-blur-sm border border-white/10 px-2.5 py-1 rounded-full">
+          <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm border border-gray-200 shadow-sm px-2.5 py-1 rounded-full">
             <span className="w-1.5 h-1.5 rounded-full bg-red-500 pulse-dot" />
-            <span className="text-[10px] font-semibold text-white/70 tracking-widest uppercase">Live</span>
+            <span className="text-[10px] font-semibold text-gray-600 tracking-widest uppercase">Live</span>
           </div>
         )}
 
-        {/* Detection count badge */}
         {cameraOn && (
-          <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-sm border border-white/10 px-2.5 py-1 rounded-full">
-            <span className="text-[10px] font-semibold text-white/50">
+          <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm border border-gray-200 shadow-sm px-2.5 py-1 rounded-full">
+            <span className="text-[10px] font-semibold text-gray-500">
               {detections.length} détection{detections.length !== 1 ? "s" : ""}
             </span>
           </div>
@@ -206,46 +203,36 @@ export default function CameraDetector() {
 
       {/* ── Controls ── */}
       <div className="flex items-center justify-between gap-3">
-        <div className="flex gap-2">
-          {!cameraOn ? (
-            <button
-              onClick={startCamera}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-blue-600/20"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.361a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
-              </svg>
-              Démarrer la caméra
-            </button>
-          ) : (
-            <button
-              onClick={stopCamera}
-              className="flex items-center gap-2 border border-white/10 hover:bg-white/[0.05] text-white/60 hover:text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
-              </svg>
-              Arrêter
-            </button>
-          )}
-        </div>
+        {!cameraOn ? (
+          <button onClick={startCamera} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors shadow-sm">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.361a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+            </svg>
+            Démarrer la caméra
+          </button>
+        ) : (
+          <button onClick={stopCamera} className="flex items-center gap-2 bg-white hover:bg-gray-50 border border-gray-200 text-gray-600 hover:text-gray-900 text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors shadow-sm">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+            </svg>
+            Arrêter
+          </button>
+        )}
 
         {best && cameraOn && (
           <button
             onClick={handleSave}
             disabled={status === "saving"}
-            className={`flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-xl transition-all text-white ${
-              status === "saving"
-                ? "bg-amber-500/80 cursor-wait"
-                : status === "saved"
-                ? "bg-emerald-600"
-                : "bg-emerald-600 hover:bg-emerald-500 shadow-lg shadow-emerald-600/20"
+            className={`flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors shadow-sm text-white ${
+              status === "saving" ? "bg-amber-500 cursor-wait"
+              : status === "saved" ? "bg-emerald-600"
+              : "bg-emerald-600 hover:bg-emerald-700"
             }`}
           >
             {status === "saving" ? (
-              <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg> Envoi…</>
+              <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>Envoi…</>
             ) : status === "saved" ? (
-              <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg> Enregistré</>
+              <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>Enregistré</>
             ) : (
               <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
               Envoyer — <span className="capitalize">{best.class}</span> ({(best.confidence * 100).toFixed(0)}%)</>
@@ -256,13 +243,13 @@ export default function CameraDetector() {
 
       {/* ── Détections ── */}
       {detections.length > 0 && (
-        <div className="bg-white/[0.025] border border-white/[0.06] rounded-xl p-4 fade-in">
-          <p className="text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-3">Détections actives</p>
+        <div className="bg-white border border-gray-200 rounded-xl p-4 fade-in">
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-3">Détections actives</p>
           <div className="flex flex-wrap gap-2">
             {detections.map((d, i) => (
-              <div key={i} className="flex items-center gap-2 border border-blue-500/20 bg-blue-500/[0.07] px-3 py-1.5 rounded-lg">
-                <span className="text-xs font-semibold text-blue-300 capitalize">{d.class}</span>
-                <span className="text-[10px] text-blue-400/60 font-mono">{(d.confidence * 100).toFixed(0)}%</span>
+              <div key={i} className="flex items-center gap-2 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-lg">
+                <span className="text-xs font-semibold text-blue-700 capitalize">{d.class}</span>
+                <span className="text-[10px] text-blue-400 font-mono">{(d.confidence * 100).toFixed(0)}%</span>
               </div>
             ))}
           </div>
@@ -270,7 +257,7 @@ export default function CameraDetector() {
       )}
 
       {status === "error" && (
-        <div className="flex items-center gap-2 border border-red-500/20 bg-red-500/[0.07] px-4 py-3 rounded-xl text-red-400 text-sm">
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 px-4 py-3 rounded-xl text-red-600 text-sm">
           <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
           </svg>
