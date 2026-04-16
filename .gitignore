@@ -6,7 +6,7 @@ frontend/.env.local
 # Python
 backend/__pycache__/
 backend/*.pyc
-backend/model/
+# backend/model/
 backend/.env
 backend/venv/
 
