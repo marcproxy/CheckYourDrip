@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const RAW = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const API_URL = RAW.startsWith("http") ? RAW : `https://${RAW}`;
 
 interface LogEntry {
   id: string;
