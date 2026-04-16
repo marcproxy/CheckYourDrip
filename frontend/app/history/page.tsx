@@ -1,16 +1,13 @@
-import Link from "next/link";
 import HistoryList from "@/components/HistoryList";
 
 export default function HistoryPage() {
   return (
-    <main className="min-h-screen bg-gray-950 text-white flex flex-col p-6 gap-6">
-      <div className="flex items-center gap-4">
-        <Link href="/" className="text-gray-400 hover:text-white transition-colors text-sm">
-          ← Accueil
-        </Link>
-        <h1 className="text-2xl font-bold">
-          Check<span className="text-indigo-400">Your</span>Drip — Historique
-        </h1>
+    <main className="max-w-6xl mx-auto px-6 py-10 flex flex-col gap-8">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-3xl font-black">Historique des détections</h1>
+        <p className="text-white/40 text-sm">
+          Toutes les tenues validées et enregistrées dans la base de données.
+        </p>
       </div>
       <HistoryList />
     </main>
